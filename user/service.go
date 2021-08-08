@@ -10,14 +10,15 @@ type Service interface {
 	RegisterUser(input RegisterUserInput) (User, error)
 	Login(input LoginInput) (User, error)
 	IsEmailAvailable(input CheckEmailInput) (bool, error)
+	SaveAvatar(Id int, fileLocation string) (User, error)
 }
 
 type service struct {
-	respository Repository
+	repository Repository
 }
 
-func NewService(respository Repository) *service {
-	return &service{respository}
+func NewService(repository Repository) *service {
+	return &service{repository}
 }
 
 func (s *service) RegisterUser(input RegisterUserInput) (User, error) {
@@ -34,7 +35,7 @@ func (s *service) RegisterUser(input RegisterUserInput) (User, error) {
 	user.PasswordHash = string(passwordHash)
 	user.Role = "user"
 
-	newUser, err := s.respository.Save(user)
+	newUser, err := s.repository.Save(user)
 
 	if err != nil {
 		return newUser, err
@@ -47,12 +48,12 @@ func (s *service) Login(input LoginInput) (User, error) {
 	email := input.Email
 	password := input.Password
 
-	user, err := s.respository.FindByEmail(email)
+	user, err := s.repository.FindByEmail(email)
 	if err != nil {
 		return user, err
 	}
 
-	if user.ID == 0 {
+	if user.Id == 0 {
 		return user, errors.New("Email not found!")
 	}
 
@@ -67,14 +68,30 @@ func (s *service) Login(input LoginInput) (User, error) {
 func (s *service) IsEmailAvailable(input CheckEmailInput) (bool, error) {
 	email := input.Email
 
-	user, err := s.respository.FindByEmail(email)
+	user, err := s.repository.FindByEmail(email)
 	if err != nil {
 		return false, err
 	}
 
-	if user.ID == 0 {
+	if user.Id == 0 {
 		return true, nil
 	}
 
 	return false, nil
+}
+
+func (s *service) SaveAvatar(Id int, fileLocation string) (User, error) {
+	user, err := s.repository.FindById(Id)
+	if err != nil {
+		return user, err
+	}
+
+	user.AvatarFileName = fileLocation
+
+	updatedUser, err := s.repository.Update(user)
+	if err != nil {
+		return updatedUser, err
+	}
+
+	return updatedUser, nil
 }
